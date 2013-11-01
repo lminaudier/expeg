@@ -51,15 +51,16 @@ defmodule ExpegTest do
   end
 
   test "can consume an ordered choice between alternatives" do
-    assert {"1", "234abcd"} == Expeg.choose(&start_with_1/1, &start_with_a/1).("1234abcd")
-    assert {"a", "bcd1234"} == Expeg.choose(&start_with_1/1, &start_with_a/1).("abcd1234")
-    assert {:error, ""} == Expeg.choose(&start_with_1/1, &start_with_a/1).("zzz")
+    assert {"1", "234abcd"} == Expeg.choose([&start_with_1/1, &start_with_a/1]).("1234abcd")
+    assert {"a", "bcd1234"} == Expeg.choose([&start_with_1/1, &start_with_a/1]).("abcd1234")
+    assert {:error, ""} == Expeg.choose([&start_with_1/1, &start_with_a/1]).("zzz")
   end
 
   test "can consume a sequence of terminal and non terminals" do
-    assert {"12", "34abcd"} == Expeg.sequence(&start_with_1/1, &followed_by_a_2/1).("1234abcd")
-    assert {:error, ""} == Expeg.sequence(&start_with_1/1, &followed_by_a_a/1).("1234abcd")
-    assert {:error, ""} == Expeg.sequence(&start_with_1/1, &followed_by_a_2/1).("abcd1234")
+    assert {["1", "2", "2"], "34abcd"} == Expeg.sequence([&start_with_1/1, &followed_by_a_2/1, &followed_by_a_2/1]).("12234abcd")
+    assert {["1", "2"], "34abcd"} == Expeg.sequence([&start_with_1/1, &followed_by_a_2/1]).("1234abcd")
+    assert {:error, ""} == Expeg.sequence([&start_with_1/1, &followed_by_a_a/1]).("1234abcd")
+    assert {:error, ""} == Expeg.sequence([&start_with_1/1, &followed_by_a_2/1]).("abcd1234")
   end
 
   test "can consume a greedy repetition with at least one match" do

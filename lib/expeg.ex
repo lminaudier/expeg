@@ -43,35 +43,39 @@ defmodule Expeg do
     end
   end
 
-  def choose(f1, f2) do
+  def choose(fns) do
     fn (input) ->
-      case f1.(input) do
-        {:error, _} ->
-          case f2.(input) do
-            {:error, _} ->
-              {:error, ""}
-            {match, rest} ->
-              {match, rest}
-          end
-        {match, rest} ->
-          {match, rest}
-      end
+      attempt(fns, input, nil)
     end
   end
 
-  def sequence(f1, f2) do
+  defp attempt([], input, failure) do
+    failure
+  end
+  defp attempt([f|fns], input, first_failure) do
+    case f.(input) do
+      {:error, _} = failure ->
+        case first_failure do
+          nil -> attempt(fns, input, failure)
+          _ -> attempt(fns, input, first_failure)
+        end
+      {match, rest} -> {match, rest}
+    end
+  end
+
+  def sequence(fns) do
     fn (input) ->
-      case f1.(input) do
-        {:error, _} ->
-          {:error, ""}
-        {matched1, rest1} ->
-          case f2.(rest1) do
-            {:error, _} ->
-              {:error, ""}
-            {matched2, rest2} ->
-              {matched1 <> matched2, rest2}
-          end
-      end
+      all(fns, input, [])
+    end
+  end
+
+  defp all([], input, acc) do
+    {Enum.reverse(acc), input}
+  end
+  defp all([f|fns], input, acc) do
+    case f.(input) do
+      {:error, _} -> {:error, ""}
+      {match, rest} -> all(fns, rest, [match|acc])
     end
   end
 
