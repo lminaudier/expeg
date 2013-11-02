@@ -49,5 +49,7 @@ defmodule Integration.ArithmeticTest do
 
   test "parses simple arithmetic grammar" do
     assert ["3", "+", "2"] == Arithmetic.parse("3+2")
+    assert :error == Arithmetic.parse("+2")
+    assert :error == Arithmetic.parse("3+")
   end
 end
