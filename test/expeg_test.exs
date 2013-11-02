@@ -38,6 +38,7 @@ defmodule ExpegTest do
   test "can consume with character classes" do
     assert {"1", "234abcd"} == Expeg.charclass("[1-3]").("1234abcd")
     assert {:error, ""} == Expeg.charclass("[A-Z]").("1234abcd")
+    assert {:error, ""} == Expeg.charclass("[A-Z]").("")
   end
 
   test "can consume anything" do

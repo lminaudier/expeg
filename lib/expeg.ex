@@ -92,13 +92,17 @@ defmodule Expeg do
 
   def charclass(class) do
     fn (input) ->
-      s = String.at(input, 0)
-      {:ok, regex} = Regex.compile(class)
-      case Regex.match? regex, s do
-        true ->
-          consume(s, input)
+      case input do
+        "" -> {:error, ""}
         _ ->
-          {:error, ""}
+        s = String.at(input, 0)
+        {:ok, regex} = Regex.compile(class)
+        case Regex.match? regex, s do
+          true ->
+            consume(s, input)
+          _ ->
+            {:error, ""}
+        end
       end
     end
   end
