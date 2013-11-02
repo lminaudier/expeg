@@ -10,7 +10,7 @@ defmodule Arithmetic do
       numeral   <- [0-9]
   """
   def numeral(input) do
-    charclass("[0-9]").(input)
+    one_or_more(charclass("[0-9]")).(input)
   end
 
   def additive(input) do
@@ -49,6 +49,7 @@ defmodule Integration.ArithmeticTest do
 
   test "parses simple arithmetic grammar" do
     assert ["3", "+", "2"] == Arithmetic.parse("3+2")
+    assert ["13", "+", ["210", "+", [["2", "*", "3"], "+", "1"]]] == Arithmetic.parse("13+210+2*3+1")
     assert :error == Arithmetic.parse("+2")
     assert :error == Arithmetic.parse("3+")
   end
