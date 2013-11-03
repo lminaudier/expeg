@@ -13,6 +13,19 @@ defmodule Expeg do
     end
   end
 
+  defmacro root(name) do
+    quote do
+      def parse(input) do
+        case unquote(name)(input) do
+          {ast, ""} ->
+            ast
+          _ ->
+            :error
+        end
+      end
+    end
+  end
+
   def string(s) do
     fn (input) ->
       case String.starts_with?(input, s) do

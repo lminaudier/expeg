@@ -9,6 +9,8 @@ defmodule Arithmetic do
       primary   <- "(" additive ")" / numeral
       numeral   <- [0-9]+
   """
+  root(:additive)
+
   rule(:numeral) do
     one_or_more(charclass("[0-9]"))
   end
@@ -32,15 +34,6 @@ defmodule Arithmetic do
                       &additive/1,
                       string(")")]),
             &numeral/1])
-  end
-
-  def parse(input) do
-    case additive(input) do
-      {ast, ""} ->
-        ast
-      _ ->
-        :error
-    end
   end
 end
 
