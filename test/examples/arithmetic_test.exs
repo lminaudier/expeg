@@ -15,8 +15,8 @@ defmodule Arithmetic do
     one_or_more(charclass("[0-9]"))
   end
   transform(:to_integer) do
-    fn(res) ->
-      binary_to_integer(res)
+    fn(node) ->
+      binary_to_integer(node)
     end
   end
 
@@ -27,12 +27,12 @@ defmodule Arithmetic do
             &multitive/1])
   end
   transform(:add) do
-    fn(res) ->
-      case res do
+    fn(node) ->
+      case node do
         [a, "+", b] when is_integer(a) and is_integer(b) ->
           a + b
         _ ->
-          res
+          node
       end
     end
   end
@@ -44,12 +44,12 @@ defmodule Arithmetic do
             &primary/1])
   end
   transform(:mult) do
-    fn(res) ->
-      case res do
+    fn(node) ->
+      case node do
         [a, "*", b] when is_integer(a) and is_integer(b) ->
           a + b
         _ ->
-          res
+          node
       end
     end
   end
