@@ -13,6 +13,25 @@ defmodule Expeg do
     end
   end
 
+  defmacro rule(name, transformation, do: derivation) do
+    quote do
+      def unquote(name)(input) do
+        unquote(transformation)(unquote(derivation).(input))
+      end
+    end
+  end
+
+  defmacro transform(name, do: derivation) do
+    quote do
+      def unquote(name)(:fail) do
+        :fail
+      end
+      def unquote(name)({result, rest}) do
+        {unquote(derivation).(result), rest}
+      end
+    end
+  end
+
   defmacro root(name) do
     quote do
       def parse(input) do

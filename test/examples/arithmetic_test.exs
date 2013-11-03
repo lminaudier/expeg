@@ -11,22 +11,47 @@ defmodule Arithmetic do
   """
   root(:additive)
 
-  rule(:numeral) do
+  rule(:numeral, :to_integer) do
     one_or_more(charclass("[0-9]"))
   end
+  transform(:to_integer) do
+    fn(res) ->
+      binary_to_integer(res)
+    end
+  end
 
-  rule(:additive) do
+  rule(:additive, :add) do
     choose([sequence([&multitive/1,
                       string("+"),
                       &additive/1]),
             &multitive/1])
   end
+  transform(:add) do
+    fn(res) ->
+      case res do
+        [a, "+", b] when is_integer(a) and is_integer(b) ->
+          a + b
+        _ ->
+          res
+      end
+    end
+  end
 
-  rule(:multitive) do
+  rule(:multitive, :mult) do
     choose([sequence([&primary/1,
                       string("*"),
                       &multitive/1]),
             &primary/1])
+  end
+  transform(:mult) do
+    fn(res) ->
+      case res do
+        [a, "*", b] when is_integer(a) and is_integer(b) ->
+          a + b
+        _ ->
+          res
+      end
+    end
   end
 
   rule(:primary) do
@@ -41,8 +66,8 @@ defmodule Integration.ArithmeticTest do
   use ExUnit.Case
 
   test "parses simple arithmetic grammar" do
-    assert ["3", "+", "2"] == Arithmetic.parse("3+2")
-    assert ["13", "+", ["210", "+", [["2", "*", "3"], "+", "1"]]] == Arithmetic.parse("13+210+2*3+1")
+    assert 5 == Arithmetic.parse("3+2")
+    assert 229 == Arithmetic.parse("13+210+2*3+1")
     assert :fail == Arithmetic.parse("+2")
     assert :fail == Arithmetic.parse("3+")
   end
