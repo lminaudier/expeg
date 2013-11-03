@@ -1,4 +1,18 @@
 defmodule Expeg do
+  defmacro __using__(_) do
+    quote do
+      import unquote(__MODULE__)
+    end
+  end
+
+  defmacro rule(name, do: derivation) do
+    quote do
+      def unquote(name)(input) do
+        unquote(derivation).(input)
+      end
+    end
+  end
+
   def string(s) do
     fn (input) ->
       case String.starts_with?(input, s) do

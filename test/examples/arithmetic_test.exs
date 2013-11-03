@@ -1,5 +1,5 @@
 defmodule Arithmetic do
-  import Expeg
+  use Expeg
 
   @moduledoc """
   Implementation of Brian Ford's arithmetic grammar in it's thesis on Packrat Parsing
@@ -7,31 +7,31 @@ defmodule Arithmetic do
       additive  <- multitive "+" additive / multitive
       multitive <- primary "*" multitive / primary
       primary   <- "(" additive ")" / numeral
-      numeral   <- [0-9]
+      numeral   <- [0-9]+
   """
-  def numeral(input) do
-    one_or_more(charclass("[0-9]")).(input)
+  rule(:numeral) do
+    one_or_more(charclass("[0-9]"))
   end
 
-  def additive(input) do
+  rule(:additive) do
     choose([sequence([&multitive/1,
                       string("+"),
                       &additive/1]),
-            &multitive/1]).(input)
+            &multitive/1])
   end
 
-  def multitive(input) do
+  rule(:multitive) do
     choose([sequence([&primary/1,
                       string("*"),
                       &multitive/1]),
-            &primary/1]).(input)
+            &primary/1])
   end
 
-  def primary(input) do
+  rule(:primary) do
     choose([sequence([string("("),
                       &additive/1,
                       string(")")]),
-            &numeral/1]).(input)
+            &numeral/1])
   end
 
   def parse(input) do
