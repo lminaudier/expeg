@@ -17,10 +17,8 @@ defmodule Expeg do
     quote do
       def parse(input) do
         case unquote(name)(input) do
-          {ast, ""} ->
-            ast
-          _ ->
-            :error
+          {ast, ""} -> ast
+          _ -> :fail
         end
       end
     end
@@ -29,10 +27,8 @@ defmodule Expeg do
   def string(s) do
     fn (input) ->
       case String.starts_with?(input, s) do
-        true ->
-          consume(s, input)
-        _ ->
-          {:error, ""}
+        true -> consume(s, input)
+        _ -> :fail
       end
     end
   end
@@ -40,10 +36,8 @@ defmodule Expeg do
   def assert(f) do
     fn (input) ->
       case f.(input) do
-        {:error, _} ->
-          {:error, ""}
-        {_, _} ->
-          {[], input}
+        :fail -> :fail
+        _ -> {[], input}
       end
     end
   end
@@ -51,10 +45,8 @@ defmodule Expeg do
   def not(f) do
     fn (input) ->
       case f.(input) do
-        {:error, _} ->
-          {[], input}
-        {_, _} ->
-          {:error, ""}
+        :fail -> {[], input}
+        _ -> :fail
       end
     end
   end
@@ -62,10 +54,8 @@ defmodule Expeg do
   def optionnal(f) do
     fn (input) ->
       case f.(input) do
-        {:error, _} ->
-          {[], input}
-        {_, _} ->
-          consume(String.at(input, 0), input)
+        :fail -> {[], input}
+        res -> res
       end
     end
   end
@@ -81,12 +71,12 @@ defmodule Expeg do
   end
   defp attempt([f|fns], input, first_failure) do
     case f.(input) do
-      {:error, _} = failure ->
+      :fail = failure ->
         case first_failure do
           nil -> attempt(fns, input, failure)
           _ -> attempt(fns, input, first_failure)
         end
-      {match, rest} -> {match, rest}
+      res -> res
     end
   end
 
@@ -101,7 +91,7 @@ defmodule Expeg do
   end
   defp all([f|fns], input, acc) do
     case f.(input) do
-      {:error, _} -> {:error, ""}
+      :fail -> :fail
       {match, rest} -> all(fns, rest, [match|acc])
     end
   end
@@ -109,10 +99,8 @@ defmodule Expeg do
   def anything do
     fn (input) ->
       case input do
-        "" ->
-          {:error, ""}
-        _ ->
-          consume(String.at(input, 0), input)
+        "" -> :fail
+        _ -> consume(String.first(input), input)
       end
     end
   end
@@ -120,16 +108,14 @@ defmodule Expeg do
   def charclass(class) do
     fn (input) ->
       case input do
-        "" -> {:error, ""}
+        "" -> :fail
         _ ->
-        s = String.at(input, 0)
-        {:ok, regex} = Regex.compile(class)
-        case Regex.match? regex, s do
-          true ->
-            consume(s, input)
-          _ ->
-            {:error, ""}
-        end
+          s = String.first(input)
+          {:ok, regex} = Regex.compile(class)
+          case Regex.match? regex, s do
+            true -> consume(s, input)
+            _ -> :fail
+          end
       end
     end
   end
@@ -137,30 +123,24 @@ defmodule Expeg do
   def one_or_more(f) do
     fn (input) ->
       case f.(input) do
-        {:error, _} ->
-          {:error, ""}
-        {matched, rest} ->
-          do_one_or_more(f, matched, rest)
+        :fail -> :fail
+        {matched, rest} -> do_one_or_more(f, matched, rest)
       end
     end
   end
 
   defp do_one_or_more(f, matched, remaining) do
     case f.(remaining) do
-      {:error, _} ->
-        {matched, remaining}
-      {next, rest} ->
-        do_one_or_more(f, matched <> next, rest)
+      :fail -> {matched, remaining}
+      {next, rest} -> do_one_or_more(f, matched <> next, rest)
     end
   end
 
   def zero_or_more(f) do
     fn (input) ->
       case f.(input) do
-        {:error, _} ->
-          {[], input}
-        {matched, rest} ->
-          do_one_or_more(f, matched, rest)
+        :fail -> {[], input}
+        {matched, rest} -> do_one_or_more(f, matched, rest)
       end
     end
   end
