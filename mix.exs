@@ -4,7 +4,7 @@ defmodule Expeg.Mixfile do
   def project do
     [ app: :expeg,
       version: "0.0.1",
-      elixir: "~> 0.10.3",
+      elixir: "~> 0.11.1",
       deps: deps ]
   end
 
