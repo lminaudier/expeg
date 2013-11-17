@@ -85,4 +85,9 @@ defmodule ExpegTest do
     assert {[], "abcd1234"} == Expeg.not(&start_with_1/1).("abcd1234")
     assert :fail == Expeg.not(&start_with_1/1).("1234abcd")
   end
+
+  test "can tag the parse result" do
+    assert {{:ones, "1"}, "234"} == Expeg.tag(:ones, &start_with_1/1).("1234")
+    assert :fail == Expeg.tag(:ones, &start_with_1/1).("abcd1234")
+  end
 end

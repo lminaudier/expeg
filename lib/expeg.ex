@@ -145,6 +145,16 @@ defmodule Expeg do
     end
   end
 
+  def tag(tag_name, f) do
+    fn (input) ->
+      case f.(input) do
+        {match, rest} -> {{tag_name, match}, rest}
+        _ ->
+          :fail
+      end
+    end
+  end
+
   def consume(s, input) do
     {s, remaining(input, String.length(s))}
   end
