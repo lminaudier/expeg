@@ -66,7 +66,7 @@ defmodule Expeg do
     end
   end
 
-  defp attempt([], input, failure) do
+  defp attempt([], _input, failure) do
     failure
   end
   defp attempt([f|fns], input, first_failure) do
