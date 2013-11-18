@@ -21,15 +21,15 @@ defmodule Arithmetic do
   end
 
   rule(:additive, :add) do
-    choose([sequence([&multitive/1,
+    choose([sequence([tag(:left, &multitive/1),
                       string("+"),
-                      &additive/1]),
+                      tag(:right, &additive/1)]),
             &multitive/1])
   end
   transform(:add) do
     fn(node) ->
       case node do
-        [a, "+", b] when is_integer(a) and is_integer(b) ->
+        [{:left, a}, "+", {:right, b}] when is_integer(a) and is_integer(b) ->
           a + b
         _ ->
           node
