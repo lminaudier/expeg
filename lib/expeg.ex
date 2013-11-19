@@ -7,27 +7,27 @@ defmodule Expeg do
 
   defmacro rule(name, do: derivation) do
     quote do
-      def unquote(name)(input) do
-        unquote(derivation).(input)
+      def unquote(name)(input, index) do
+        unquote(derivation).(input, index)
       end
     end
   end
 
   defmacro rule(name, transformation, do: derivation) do
     quote do
-      def unquote(name)(input) do
-        unquote(transformation)(unquote(derivation).(input))
+      def unquote(name)(input, index) do
+        unquote(transformation)(unquote(derivation).(input, index))
       end
     end
   end
 
   defmacro transform(name, do: derivation) do
     quote do
-      def unquote(name)(:fail) do
-        :fail
+      def unquote(name)({:fail, index}) do
+        {:fail, index}
       end
-      def unquote(name)({result, rest}) do
-        {unquote(derivation).(result), rest}
+      def unquote(name)({result, rest, index}) do
+        {unquote(derivation).(result), rest, index}
       end
     end
   end
@@ -35,147 +35,148 @@ defmodule Expeg do
   defmacro root(name) do
     quote do
       def parse(input) do
-        case unquote(name)(input) do
-          {ast, ""} -> ast
-          _ -> :fail
+        case unquote(name)(input, 0) do
+          {ast, "", index} -> ast
+          {:fail, 0} -> {:fail, 0}
+          res -> {:fail, res}
         end
       end
     end
   end
 
   def string(s) do
-    fn (input) ->
+    fn (input, index) ->
       case String.starts_with?(input, s) do
-        true -> consume(s, input)
-        _ -> :fail
+        true -> consume(s, input, index)
+        _ -> {:fail, index}
       end
     end
   end
 
   def assert(f) do
-    fn (input) ->
-      case f.(input) do
-        :fail -> :fail
-        _ -> {[], input}
+    fn (input, index) ->
+      case f.(input, index) do
+        {:fail, index} -> {:fail, index}
+        _ -> {[], input, index}
       end
     end
   end
 
   def not(f) do
-    fn (input) ->
-      case f.(input) do
-        :fail -> {[], input}
-        _ -> :fail
+    fn (input, index) ->
+      case f.(input, index) do
+        {:fail, index}-> {[], input, index}
+        _ -> {:fail, index}
       end
     end
   end
 
   def optionnal(f) do
-    fn (input) ->
-      case f.(input) do
-        :fail -> {[], input}
+    fn (input, index) ->
+      case f.(input, index) do
+        {:fail, index} -> {[], input, index}
         res -> res
       end
     end
   end
 
   def choose(fns) do
-    fn (input) ->
-      attempt(fns, input, nil)
+    fn (input, index) ->
+      attempt(fns, input, index, nil)
     end
   end
 
-  defp attempt([], _input, failure) do
+  defp attempt([], _input, _index, failure) do
     failure
   end
-  defp attempt([f|fns], input, first_failure) do
-    case f.(input) do
-      :fail = failure ->
+  defp attempt([f|fns], input, index, first_failure) do
+    case f.(input, index) do
+      {:fail, _} = failure ->
         case first_failure do
-          nil -> attempt(fns, input, failure)
-          _ -> attempt(fns, input, first_failure)
+          nil -> attempt(fns, input, index, failure)
+          _   -> attempt(fns, input, index, first_failure)
         end
       res -> res
     end
   end
 
   def sequence(fns) do
-    fn (input) ->
-      all(fns, input, [])
+    fn (input, index) ->
+      all(fns, input, [], index)
     end
   end
 
-  defp all([], input, acc) do
-    {Enum.reverse(acc), input}
+  defp all([], input, acc, index) do
+    {Enum.reverse(acc), input, index}
   end
-  defp all([f|fns], input, acc) do
-    case f.(input) do
-      :fail -> :fail
-      {match, rest} -> all(fns, rest, [match|acc])
+  defp all([f|fns], input, acc, index) do
+    case f.(input, index) do
+      {:fail, index} -> {:fail, index}
+      {match, rest, new_index} -> all(fns, rest, [match|acc], new_index)
     end
   end
 
   def anything do
-    fn (input) ->
+    fn (input, index) ->
       case input do
-        "" -> :fail
-        _ -> consume(String.first(input), input)
+        "" -> {:fail, index}
+        _ -> consume(String.first(input), input, index)
       end
     end
   end
 
   def charclass(class) do
-    fn (input) ->
+    fn (input, index) ->
       case input do
-        "" -> :fail
+        "" -> {:fail, index}
         _ ->
           s = String.first(input)
           {:ok, regex} = Regex.compile(class)
           case Regex.match? regex, s do
-            true -> consume(s, input)
-            _ -> :fail
+            true -> consume(s, input, index)
+            _ -> {:fail, index}
           end
       end
     end
   end
 
   def one_or_more(f) do
-    fn (input) ->
-      case f.(input) do
-        :fail -> :fail
-        {matched, rest} -> do_one_or_more(f, matched, rest)
+    fn (input, index) ->
+      case f.(input, index) do
+        {:fail, index} -> {:fail, index}
+        {matched, rest, new_index} -> do_one_or_more(f, matched, rest, new_index)
       end
     end
   end
 
-  defp do_one_or_more(f, matched, remaining) do
-    case f.(remaining) do
-      :fail -> {matched, remaining}
-      {next, rest} -> do_one_or_more(f, matched <> next, rest)
+  defp do_one_or_more(f, matched, remaining, index) do
+    case f.(remaining, index) do
+      {:fail, index} -> {matched, remaining, index}
+      {next, rest, index} -> do_one_or_more(f, matched <> next, rest, index)
     end
   end
 
   def zero_or_more(f) do
-    fn (input) ->
-      case f.(input) do
-        :fail -> {[], input}
-        {matched, rest} -> do_one_or_more(f, matched, rest)
+    fn (input, index) ->
+      case f.(input, index) do
+        {:fail, _} -> {[], input, index}
+        {matched, rest, index} -> do_one_or_more(f, matched, rest, index)
       end
     end
   end
 
   def tag(tag_name, f) do
-    fn (input) ->
-      case f.(input) do
-        {match, rest} -> {{tag_name, match}, rest}
+    fn (input, index) ->
+      case f.(input, index) do
+        {match, rest, index} -> {{tag_name, match}, rest, index}
         _ ->
-          :fail
+          {:fail, index}
       end
     end
   end
 
-  def consume(s, input) do
-    {s, remaining(input, String.length(s))}
+  def consume(s, input, index) do
+    {s, remaining(input, String.length(s)), index + String.length(s)}
   end
 
   defp remaining(input, size) do

@@ -16,24 +16,24 @@ defmodule UntransformedArithmetic do
   end
 
   rule(:additive) do
-    choose([sequence([tag(:left, &multitive/1),
+    choose([sequence([tag(:left, &multitive/2),
                       string("+"),
-                      tag(:right, &additive/1)]),
-            &multitive/1])
+                      tag(:right, &additive/2)]),
+            &multitive/2])
   end
 
   rule(:multitive) do
-    choose([sequence([&primary/1,
+    choose([sequence([&primary/2,
                       string("*"),
-                      &multitive/1]),
-            &primary/1])
+                      &multitive/2]),
+            &primary/2])
   end
 
   rule(:primary) do
     choose([sequence([string("("),
-                      &additive/1,
+                      &additive/2,
                       string(")")]),
-            &numeral/1])
+            &numeral/2])
   end
 end
 
@@ -60,10 +60,10 @@ defmodule Arithmetic do
   end
 
   rule(:additive, :add) do
-    choose([sequence([tag(:left, &multitive/1),
+    choose([sequence([tag(:left, &multitive/2),
                       string("+"),
-                      tag(:right, &additive/1)]),
-            &multitive/1])
+                      tag(:right, &additive/2)]),
+            &multitive/2])
   end
   transform(:add) do
     fn(node) ->
@@ -77,10 +77,10 @@ defmodule Arithmetic do
   end
 
   rule(:multitive, :mult) do
-    choose([sequence([&primary/1,
+    choose([sequence([&primary/2,
                       string("*"),
-                      &multitive/1]),
-            &primary/1])
+                      &multitive/2]),
+            &primary/2])
   end
   transform(:mult) do
     fn(node) ->
@@ -95,9 +95,9 @@ defmodule Arithmetic do
 
   rule(:primary) do
     choose([sequence([string("("),
-                      &additive/1,
+                      &additive/2,
                       string(")")]),
-            &numeral/1])
+            &numeral/2])
   end
 end
 
@@ -109,9 +109,14 @@ defmodule Integration.ArithmeticTest do
   end
 
   test "can transform ast while parsing" do
+    assert 3 == Arithmetic.parse("3")
     assert 5 == Arithmetic.parse("3+2")
     assert 229 == Arithmetic.parse("13+210+2*3+1")
-    assert :fail == Arithmetic.parse("+2")
-    assert :fail == Arithmetic.parse("3+")
+    assert {:fail, 0} == Arithmetic.parse("+2")
+    assert {:fail, {3, "+", 1}} == Arithmetic.parse("3+")
+  end
+
+  test "tracks the input index" do
+    assert [{:left, "3"}, "+", {:right, "2"}] == UntransformedArithmetic.parse("3+2")
   end
 end
