@@ -115,8 +115,4 @@ defmodule Integration.ArithmeticTest do
     assert {:fail, 0} == Arithmetic.parse("+2")
     assert {:fail, {3, "+", 1}} == Arithmetic.parse("3+")
   end
-
-  test "tracks the input index" do
-    assert [{:left, "3"}, "+", {:right, "2"}] == UntransformedArithmetic.parse("3+2")
-  end
 end
